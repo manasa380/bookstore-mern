@@ -1,0 +1,36 @@
+import User from "../models/User.js";
+import Book from "../models/Book.js";
+import Order from "../models/Order.js";
+
+export const getDashboardStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+
+    const totalBooks = await Book.countDocuments();
+
+    const totalOrders = await Order.countDocuments();
+
+    const orders = await Order.find();
+
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0
+    );
+
+    res.status(200).json({
+      success: true,
+      totalUsers,
+      totalBooks,
+      totalOrders,
+      totalRevenue,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
