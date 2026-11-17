@@ -1,6 +1,8 @@
-import bcrypt from "bcryptjs";
+
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
+
+// ================= REGISTER USER =================
 
 export const registerUser = async (req, res) => {
   try {
@@ -14,8 +16,13 @@ export const registerUser = async (req, res) => {
       });
     }
 
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (existingUser) {
       return res.status(400).json({
@@ -24,33 +31,32 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create user
+    // Password will be hashed automatically by User.js pre-save middleware
     const user = await User.create({
       name,
-      email,
-      password: hashedPassword,
+      email: normalizedEmail,
+      password,
       phone,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Registration Successful",
       token: generateToken(user._id),
       user: {
-  id: user._id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone,
-  address: user.address,
-  role: user.role,
-},
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        role: user.role,
+      },
     });
-
   } catch (error) {
-    res.status(500).json({
+    console.error("Registration Error:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -71,8 +77,13 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -81,8 +92,8 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Compare entered password with hashed password
+    const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -92,22 +103,23 @@ export const loginUser = async (req, res) => {
     }
 
     // Login successful
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Login Successful",
       token: generateToken(user._id),
       user: {
-  id: user._id,
-  name: user.name,
-  email: user.email,
-  phone: user.phone,
-  address: user.address,
-  role: user.role,
-},
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        role: user.role,
+      },
     });
-
   } catch (error) {
-    res.status(500).json({
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
